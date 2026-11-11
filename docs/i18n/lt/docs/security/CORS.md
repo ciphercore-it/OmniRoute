@@ -117,32 +117,10 @@ CORS_ALLOWED_ORIGINS="http://localhost:5173, http://localhost:3000"
 sąrašą galima nustatyti vykdymo metu skiltyje **Dashboard → Security → CORS Allowed Origins**,
 nepaleidžiant sistemos iš naujo.
 
-## API raktai ir slapukų seansai
+## API klavišai ir slapukų seansai
 
-- **Bearer / `x-api-key` (`/v1/*` išvadų sąsaja):** naršyklės niekada jų neprideda
-  automatiškai. CORS čia nėra reikšmingas barjeras — barjeras yra API raktas —
-  todėl ši sąsaja sąmoningai yra mažiau ribojama, kad naršyklės ir
-  „Electron“ klientai galėtų skaityti atsakymus, kuriuos jie jau turi teisę gauti.
-  Sušvelnintas atspindėjimas priklauso nuo patvirtinto rakto, o ne vien nuo antraštės
-  buvimo: kai `REQUIRE_API_KEY=false` užklausą aptarnauja anonimiškai, sėkmingas jos
-  atsakymas išlaiko fail-closed leidžiamųjų sąrašą. Autentifikavimo atmetimai (401)
-  lieka skaitomi, kad klientai galėtų parodyti atšauktą ar klaidingai įvestą raktą
-  (#5242): paties konvejerio 401 išlaiko atspindėjimą, o maršrutas, kuris pats atmeta
-  raktą po to, kai konvejeris užklausą aptarnavo kaip anoniminę (`/v1/models` ir
-  `/v1beta/models`, kai sukonfigūruotas valdymo autentifikavimas, savininkui priskirti
-  `/v1/files`, `/v1/batches`, `/v1/media`, `/v1/session-leases` ir auto-combo
-  kandidatų maršrutai), prideda atspindėjimą prie to 401 per
-  `credentialRejectionHeaders()`. Atspindėjimas priklauso nuo to, ar užklausoje yra
-  kredencialų antraštė (`Authorization`, `x-api-key`, `x-goog-api-key` arba slapukas
-  `auth_token`), o ne nuo to, kurią iš jų patikrino maršrutas, ir niekada nederinamas su
-  `Access-Control-Allow-Credentials`; turinys yra fiksuotas klaidos vokas. Valdymo
-  maršrutai po `/api/v1/`, saugomi `requireManagementAuth()` (`/api/v1/management/*`,
-  `/api/v1/registered-keys`), atspindėjimo neprideda: esant `REQUIRE_API_KEY=false`, jų
-  401/403 negalima perskaityti iš kito šaltinio.
-- **Slapukų seansas (valdymo skydelis):** apsaugotas numatytąja uždara nuostata **ir**
-  tuo, kad bendrame kelyje nėra `Access-Control-Allow-Credentials`. Neįtraukite
-  administravimo / valdymo skydelio šaltinių į jokią mažiau ribojančią konfigūraciją; jiems turi būti taikoma
-  būtent uždara numatytoji nuostata.
+- **Nešiklis / `x-api-key` ( `/v1/*` išvadinis paviršius):** naršyklės niekada jų neprideda automatiškai. CORS is not a meaningful barrier here — the API key is the barrier — which is why that surface is intentionally permissive so browser and Electron clients can read responses they are already entitled to. The relaxed echo follows the validated key, not the mere presence of the header: when `REQUIRE_API_KEY=false` serves a request anonymously, its successful response keeps the fail-closed allowlist. Auth rejections (401) stay readable so clients can surface a revoked or mistyped key (#5242): the pipeline's own 401 keeps the echo, and a route that refuses the key itself after the pipeline served it as anonymous (`/v1/models` and `/v1beta/models` with management auth configured, the owner-scoped `/v1/files`, `/v1/batches`, `/v1/media`, `/v1/session-leases` ir auto-combo kandidatų maršrutai) prideda aidą prie to 401 per `credentialRejectionHeaders()`. The echo is keyed on the request carrying a credential header (`Authorization`, `x-api-key`, `x-goog-api-key` or the `auth_token` cookie), not on which of them the route checked, and is never paired with `Access-Control-Allow-Credentials`; korpusas yra fiksuotas klaidų apvalkalas. Management routes under `/api/v1/` guarded by `requireManagementAuth()` (`/api/v1/management/*`, `/api/v1/registered-keys`, `/api/v1/providers/[provider]/limits`, `/api/v1/accounts/[id]/limits`, `/api/v1/issues/report`) do not add the echo: with `REQUIRE_API_KEY=false` their 401/403 is not readable cross-origin.
+- **Slapukų sesija (prietaisų skydelis):** apsaugotas pagal nutylėjimą** ir** `Access-Control-Allow-Credentials` nebuvimu bendrame kelyje. Saugokite management/dashboard origins nuo bet kokios leidžiamos konfigūracijos; jie turi likti tiksliai uždaryti.
 
 ## WebSocket rankos paspaudimai (`/v1/responses`, `/v1/ws`)
 

@@ -119,32 +119,10 @@ Izcelsmes vietas tiek salīdzinātas, neņemot vērā reģistru un ignorējot no
 izpildlaikā var iestatīt sadaļā **Dashboard → Security → CORS Allowed Origins** bez
 restartēšanas.
 
-## API atslēgas un sīkfailu sesijas
+## API taustiņi vs sīkfailu sesijas
 
-- **Bearer / `x-api-key` (`/v1/*` secinājumu saskarne):** pārlūkprogrammas nekad nepievieno
-  tās automātiski. CORS šeit nav nozīmīga barjera — barjera ir API atslēga —,
-  tāpēc šī saskarne ir apzināti konfigurēta pielaidīgi, lai pārlūkprogrammu un
-  Electron klienti varētu lasīt atbildes, kurām tiem jau ir piekļuves tiesības. Atvieglotā
-  izcelsmes atgriešana seko validētajai atslēgai, nevis tikai galvenes klātbūtnei: ja
-  `REQUIRE_API_KEY=false` apkalpo pieprasījumu anonīmi, tā veiksmīgā atbilde saglabā
-  atļauto izcelsmju sarakstu, kas pēc noklusējuma visu liedz. Autentifikācijas atteikumi
-  (401) paliek nolasāmi, lai klienti varētu parādīt atsauktu vai kļūdaini ievadītu atslēgu
-  (#5242): konveijera paša 401 saglabā izcelsmes atgriešanu, un maršruts, kas pats noraida
-  atslēgu pēc tam, kad konveijers pieprasījumu apkalpojis kā anonīmu (`/v1/models` un
-  `/v1beta/models`, ja ir konfigurēta pārvaldības autentifikācija, īpašniekam piesaistītie
-  `/v1/files`, `/v1/batches`, `/v1/media`, `/v1/session-leases` un auto-combo kandidātu
-  maršruti), pievieno izcelsmes atgriešanu šim 401, izmantojot
-  `credentialRejectionHeaders()`. Izcelsmes atgriešanu nosaka tas, vai pieprasījumā ir
-  akreditācijas datu galvene (`Authorization`, `x-api-key`, `x-goog-api-key` vai sīkfails
-  `auth_token`), nevis tas, kuru no tām maršruts pārbaudīja, un tā nekad netiek apvienota
-  ar `Access-Control-Allow-Credentials`; pamatteksts ir fiksēta kļūdas aploksne.
-  Pārvaldības maršruti zem `/api/v1/`, ko aizsargā `requireManagementAuth()`
-  (`/api/v1/management/*`, `/api/v1/registered-keys`), nepievieno izcelsmes atgriešanu: ar
-  `REQUIRE_API_KEY=false` to 401/403 nav nolasāmi no citas izcelsmes.
-- **Sīkfailu sesija (informācijas panelis):** aizsargāta gan ar pēc noklusējuma slēgtu piekļuvi, **gan**
-  ar `Access-Control-Allow-Credentials` neesamību koplietotajā ceļā. Neiekļaujiet
-  pārvaldības/informācijas paneļa izcelsmes vietas nevienā pielaidīgā konfigurācijā; tām jāpaliek ar precīzi
-  slēgtu piekļuvi.
+- **Nesējs / `x-api-key` ( `/v1/*` secinājuma virsma):** pārlūkprogrammas nekad tos nepievieno automātiski. CORS is not a meaningful barrier here — the API key is the barrier — which is why that surface is intentionally permissive so browser and Electron clients can read responses they are already entitled to. The relaxed echo follows the validated key, not the mere presence of the header: when `REQUIRE_API_KEY=false` serves a request anonymously, its successful response keeps the fail-closed allowlist. Auth rejections (401) stay readable so clients can surface a revoked or mistyped key (#5242): the pipeline's own 401 keeps the echo, and a route that refuses the key itself after the pipeline served it as anonymous (`/v1/models` and `/v1beta/models` with management auth configured, the owner-scoped `/v1/files`, `/v1/batches`, `/v1/media`, `/v1/session-leases` un auto-combo kandidātu maršruti) pievieno atbalsi šim 401, izmantojot `credentialRejectionHeaders()`. The echo is keyed on the request carrying a credential header (`Authorization`, `x-api-key`, `x-goog-api-key` or the `auth_token` cookie), not on which of them the route checked, and is never paired with `Access-Control-Allow-Credentials`; korpuss ir fiksēts kļūdu apvalks. Management routes under `/api/v1/` guarded by `requireManagementAuth()` (`/api/v1/management/*`, `/api/v1/registered-keys`, `/api/v1/providers/[provider]/limits`, `/api/v1/accounts/[id]/limits`, `/api/v1/issues/report`) do not add the echo: with `REQUIRE_API_KEY=false` their 401/403 is not readable cross-origin.
+- **Sīkfailu sesija (informācijas panelis):** aizsargāts ar neveiksmes aizvēršanas noklusējuma iestatījumu** un** ar `Access-Control-Allow-Credentials` neesamību kopīgā ceļā. Neļaujiet management/dashboard origins no jebkādas pieļaujamās konfigurācijas; tiem jāpaliek precīzi aizvērtiem.
 
 ## WebSocket rokasspiedieni (`/v1/responses`, `/v1/ws`)
 
